@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mktvis</title>
+    <style>
+        body {{ margin: 0; }}
+        #globeViz {{ width: 100vw; height: 100vh; }}
+    </style>
+</head>
+<body>
+    <div id="globeViz"></div>
+    <script src="//unpkg.com/three-globe@2.31.1/example/img/three.min.js"></script>
+    <script src="//unpkg.com/globe.gl@2.28.5"></script>
+
+    <script>
+        const OPACITY = 0.5;
+        const BACKEND_URL = '{{MKTVIS_BACKEND_URL}}';
+        const HOME = {{ lat: {{MKTVIS_HOME_LAT}}, lon: {{MKTVIS_HOME_LON}} }};
+
+        const myGlobe = Globe()
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
+            (document.getElementById('globeViz'))
+            .pointAltitude('size')
+            .pointColor('color')
+            .arcLabel(d => `${{d.ip}}: ${{d.org}} &#8594; ${{d.city}}`)
+            .arcStartLat(HOME.lat)
+            .arcStartLng(HOME.lon)
+            .arcEndLat(d => d.lat)
+            .arcEndLng(d => d.lon)
+            .arcDashLength(0.5)
+            .arcDashGap(1)
+            .arcDashInitialGap(() => Math.random())
+            .arcDashAnimateTime(4000)
+            .arcColor(d => [`rgba(0, 255, 0, ${{OPACITY}})`, `rgba(255, 0, 0, ${{OPACITY}})`])
+            .arcsTransitionDuration(0)
+
+        function fetchConnections() {{
+            fetch(BACKEND_URL + '/results')
+                .then(res => res.json())
+                .then(data => {{
+                    myGlobe.arcsData(data);
+                }})
+                .catch(err => {{
+                    console.error('Failed to fetch connections:', err);
+                }});
+        }}
+
+        fetchConnections();
+        setInterval(fetchConnections, 30000);
+
+        myGlobe.controls().autoRotate = true;
+        myGlobe.controls().autoRotateSpeed = 0.6;
+    </script>
+</body>
+</html>

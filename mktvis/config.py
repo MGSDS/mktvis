@@ -18,7 +18,6 @@ _ENV_NULLABLE_STR_KEYS = frozenset({
 })
 
 _KEYS = (
-    'maxmind_license_key',
     'routerboard_address',
     'routerboard_user',
     'routerboard_password',

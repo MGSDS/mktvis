@@ -10,6 +10,8 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
+        nginx \
+        supervisor \
  && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system --gid 1000 mktvis \
@@ -23,14 +25,16 @@ COPY main.py ./
 
 RUN pip install --no-cache-dir .
 
+RUN mkdir -p /var/www/mktvis /var/log/supervisor /var/opt/mktvis \
+ && chown -R mktvis:mktvis /var/www/mktvis /var/opt/mktvis /var/log/supervisor
+
+COPY docker/nginx.index.html /tmp/nginx.index.html
+COPY docker/nginx.conf /tmp/nginx.conf
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod 0755 /usr/local/bin/docker-entrypoint.sh
 
-RUN mkdir -p /var/opt/mktvis \
- && chown -R mktvis:mktvis /var/opt/mktvis
-
-USER mktvis
-
-EXPOSE 5555
+EXPOSE 80
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

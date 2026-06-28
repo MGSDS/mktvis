@@ -108,12 +108,14 @@ ansible-playbook setup/install.yml -i 192.168.0.11,
 ## Docker
 
 A container image is published to `ghcr.io` from every push to `main` and every git tag.
+The container runs a Python backend API (port 5555 internally) and an nginx frontend
+(proxying `/results` to the backend), behind a supervisord process manager.
 
 ```bash
 docker run -d \
   --name mktvis \
   --restart unless-stopped \
-  -p 127.0.0.1:5555:5555 \
+  -p 8080:80 \
   -e MKTVIS_ROUTERBOARD_ADDRESS=192.168.0.1 \
   -e MKTVIS_ROUTERBOARD_USER=mktvis \
   -e MKTVIS_ROUTERBOARD_PASSWORD='top-secret' \
@@ -121,19 +123,19 @@ docker run -d \
   -e MKTVIS_ROUTERBOARD_USE_SSL=false \
   -e MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_VERIFY=false \
   -e MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_PATH= \
-  -e MKTVIS_LISTEN_PORT=5555 \
   -e MKTVIS_CITY_DB_PATH=/var/opt/mktvis/GeoLite2-City.mmdb \
   -e MKTVIS_ASN_DB_PATH=/var/opt/mktvis/GeoLite2-ASN.mmdb \
+  -e MKTVIS_HOME_LAT=54.3109861 \
+  -e MKTVIS_HOME_LON=10.1296693 \
   -e MAXMIND_LICENSE_KEY='your-key' \
   ghcr.io/leonmortenrichter/mktvis:latest
 ```
 
+Then open `http://localhost:8080` in your browser.
+
 The image is configured exclusively via environment variables. No config file is required or read.
 
 ### Environment variables
-
-All variables are prefixed with `MKTVIS_` and map 1:1 to the YAML keys used by the
-Ansible deployment.
 
 | Variable | Type | Required | Notes |
 |---|---|---|---|
@@ -144,11 +146,13 @@ Ansible deployment.
 | `MKTVIS_ROUTERBOARD_USE_SSL` | bool | yes | `1`/`true`/`yes`/`on` or `0`/`false`/`no`/`off` (case-insensitive) |
 | `MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_VERIFY` | bool | yes | same bool syntax as above |
 | `MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_PATH` | str | yes | path to CA bundle; empty string disables custom CA |
-| `MKTVIS_LISTEN_PORT` | str | yes | port the HTTP exporter binds to |
+| `MKTVIS_HOME_LAT` | float | yes | latitude of your home location (shown as the arc origin on the globe) |
+| `MKTVIS_HOME_LON` | float | yes | longitude of your home location |
+| `MKTVIS_BACKEND_URL` | str | no | base URL of the API backend (default `http://127.0.0.1:5555`) |
 | `MKTVIS_CITY_DB_PATH` | str | yes | path to `GeoLite2-City.mmdb` |
 | `MKTVIS_ASN_DB_PATH` | str | yes | path to `GeoLite2-ASN.mmdb` |
-| `MKTVIS_MAXMIND_LICENSE_KEY` | str | no | when set, the entrypoint downloads the databases on first start |
-| `MAXMIND_LICENSE_KEY` | str | no | alias used by the entrypoint download script (set one or the other) |
+| `MAXMIND_LICENSE_KEY` | str | no | when set, the entrypoint downloads the databases on first start |
+| `MKTVIS_FORCE_DB_UPDATE` | str | no | set to `1` to re-download MaxMind databases on every start |
 
 The MaxMind databases can be provided in two ways:
 
