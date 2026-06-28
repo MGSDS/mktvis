@@ -1,6 +1,21 @@
+import os
 import pathlib
 import typing
 import yaml
+
+_ENV_PREFIX = 'MKTVIS_'
+
+_BOOL_TRUE = frozenset({'1', 'true', 'yes', 'on'})
+_BOOL_FALSE = frozenset({'0', 'false', 'no', 'off'})
+
+_ENV_BOOL_KEYS = frozenset({
+    'routerboard_use_ssl',
+    'routerboard_ssl_certificate_verify',
+})
+_ENV_NULLABLE_STR_KEYS = frozenset({
+    'routerboard_ssl_certificate_path',
+    'maxmind_license_key',
+})
 
 _KEYS = (
     'maxmind_license_key',
@@ -53,6 +68,15 @@ def is_atomic(val: typing.Any) -> bool:
     return False
 
 
+def _parse_bool(value: str) -> bool:
+    lowered = value.strip().lower()
+    if lowered in _BOOL_TRUE:
+        return True
+    if lowered in _BOOL_FALSE:
+        return False
+    raise ConfigurationValueError(f'Cannot parse {value!r} as bool')
+
+
 class MKTVISConfig:
 
     LISTEN_PORT: int
@@ -98,6 +122,21 @@ class MKTVISConfig:
 
             key_value_dict[key] = val
 
+        return cls(key_value_dict)
+
+    @classmethod
+    def from_env(cls) -> 'MKTVISConfig':
+        key_value_dict: typing.Dict[str, typing.Any] = {}
+        for key in _KEYS:
+            raw = os.environ.get(_ENV_PREFIX + key.upper())
+            if raw is None:
+                continue
+            if key in _ENV_BOOL_KEYS:
+                key_value_dict[key] = _parse_bool(raw)
+            elif key in _ENV_NULLABLE_STR_KEYS:
+                key_value_dict[key] = raw if raw != '' else None
+            else:
+                key_value_dict[key] = raw
         return cls(key_value_dict)
 
     @classmethod

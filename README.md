@@ -75,8 +75,8 @@ Once you signed up, you need to generate a license key. This key will be used to
 ### Prepare a Raspi (or any other machine)
 
 I deployed this service to a Raspberry Pi. Therefore, I created a simple Ansible Playbook.
-Currently, there is no Dockerfile. So you need to prepare a physical or virtual machine that
-you have SSH access to.
+If you prefer Docker, see the [Docker](#docker) section below. Otherwise, prepare a physical
+or virtual machine that you have SSH access to.
 
 ### Prepare the Playbook
 
@@ -104,3 +104,53 @@ pip install -U ansible
 ansible-galaxy install geerlingguy.nginx
 ansible-playbook setup/install.yml -i 192.168.0.11,
 ```
+
+## Docker
+
+A container image is published to `ghcr.io` from every push to `main` and every git tag.
+
+```bash
+docker run -d \
+  --name mktvis \
+  --restart unless-stopped \
+  -p 127.0.0.1:5555:5555 \
+  -e MKTVIS_ROUTERBOARD_ADDRESS=192.168.0.1 \
+  -e MKTVIS_ROUTERBOARD_USER=mktvis \
+  -e MKTVIS_ROUTERBOARD_PASSWORD='top-secret' \
+  -e MKTVIS_ROUTERBOARD_PORT=8728 \
+  -e MKTVIS_ROUTERBOARD_USE_SSL=false \
+  -e MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_VERIFY=false \
+  -e MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_PATH= \
+  -e MKTVIS_LISTEN_PORT=5555 \
+  -e MKTVIS_CITY_DB_PATH=/var/opt/mktvis/GeoLite2-City.mmdb \
+  -e MKTVIS_ASN_DB_PATH=/var/opt/mktvis/GeoLite2-ASN.mmdb \
+  -e MAXMIND_LICENSE_KEY='your-key' \
+  ghcr.io/leonmortenrichter/mktvis:latest
+```
+
+The image is configured exclusively via environment variables. No config file is required or read.
+
+### Environment variables
+
+All variables are prefixed with `MKTVIS_` and map 1:1 to the YAML keys used by the
+Ansible deployment.
+
+| Variable | Type | Required | Notes |
+|---|---|---|---|
+| `MKTVIS_ROUTERBOARD_ADDRESS` | str | yes | IP/hostname of the Mikrotik device |
+| `MKTVIS_ROUTERBOARD_USER` | str | yes | RouterOS API user |
+| `MKTVIS_ROUTERBOARD_PASSWORD` | str | yes | RouterOS API password |
+| `MKTVIS_ROUTERBOARD_PORT` | str | yes | RouterOS API port (usually `8728` or `8729` for SSL) |
+| `MKTVIS_ROUTERBOARD_USE_SSL` | bool | yes | `1`/`true`/`yes`/`on` or `0`/`false`/`no`/`off` (case-insensitive) |
+| `MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_VERIFY` | bool | yes | same bool syntax as above |
+| `MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_PATH` | str | yes | path to CA bundle; empty string disables custom CA |
+| `MKTVIS_LISTEN_PORT` | str | yes | port the HTTP exporter binds to |
+| `MKTVIS_CITY_DB_PATH` | str | yes | path to `GeoLite2-City.mmdb` |
+| `MKTVIS_ASN_DB_PATH` | str | yes | path to `GeoLite2-ASN.mmdb` |
+| `MKTVIS_MAXMIND_LICENSE_KEY` | str | no | when set, the entrypoint downloads the databases on first start |
+| `MAXMIND_LICENSE_KEY` | str | no | alias used by the entrypoint download script (set one or the other) |
+
+The MaxMind databases can be provided in two ways:
+
+1. Let the entrypoint download them on first start by setting `MAXMIND_LICENSE_KEY`.
+2. Mount them as volumes at the paths given by `MKTVIS_CITY_DB_PATH` / `MKTVIS_ASN_DB_PATH`.
