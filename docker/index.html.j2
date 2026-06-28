@@ -38,7 +38,7 @@
 
 
         function fetchConnections() {
-            fetch('http://{{ listen_address }}:{{ listen_port }}/results')
+            fetch('/results')
                 .then(res => res.json())
                 .then(data => {
                     myGlobe.arcsData(data);

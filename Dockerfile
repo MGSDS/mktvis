@@ -22,14 +22,14 @@ WORKDIR /app
 COPY setup.py ./
 COPY mktvis ./mktvis
 COPY main.py ./
+COPY docker/index.html.j2 /tmp/index.html.j2
 
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir jinja2 .
 
 RUN mkdir -p /var/www/mktvis /var/log/supervisor /var/opt/mktvis \
  && chown -R mktvis:mktvis /var/www/mktvis /var/opt/mktvis /var/log/supervisor
 
-COPY docker/nginx.index.html /tmp/nginx.index.html
-COPY docker/nginx.conf /tmp/nginx.conf
+COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

@@ -14,8 +14,3 @@ coverage.xml
 README.md
 Dockerfile
 img/
-setup/
-.flake8
-.mypy.ini
-.yamllint
-Makefile

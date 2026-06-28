@@ -22,7 +22,7 @@ def main() -> None:
         COLLECTOR.init(router_conn, maxmind_conn)  # type:ignore
 
         # This start the server which collects connection data on demand
-        ExportProcessor.run(port=int(config.LISTEN_PORT))
+        ExportProcessor.run(port=5555)
 
 
 if __name__ == '__main__':

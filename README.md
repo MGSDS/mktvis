@@ -1,115 +1,57 @@
 # Live plot open connections from your Mikrotik device on a 3-dimensional globe
 
-A straightforward Python module to export and visualize open connections from any
-Mikrotik RouterOS device. It gathers open connections through the RouterOS REST API,
-enriches them with geolocation data and visualizes the result on an interactive 3D globe.
+A Python module to export and visualize open connections from any Mikrotik RouterOS device.
+It fetches connections via the RouterOS API, enriches them with geolocation data, and
+renders them on an interactive 3D globe served by an embedded nginx frontend.
 
 ![example image](./img/screen.png)
 
 ## Disclaimer
 
-This project was born out of pure boredom and the urge to play around with
-[globe.gl](https://github.com/vasturiano/globe.gl).
 IP geolocation data is inherently inaccurate and should be considered a rough guess.
-This displayed data does not provide any security gain. On the contrary, since the data
-is retrieved via the RouterOS API, it is extremely important to take appropriate
-precautions to not compromise the integrity of your router:
+Since data is retrieved via the RouterOS API, take appropriate precautions:
 
-- use HTTPS instead of HTTP
-- choose a secure password
-- secure the device on which the service is running
+- use HTTPS / SSL to the router
+- choose a strong password
+- secure the host running the service
 
-## What is the purpose ?
+## What is the purpose?
 
-One can argue that the added value of this project is limited. Ultimately, this is only a (pretty) visualization of one's IP connections.
+One can argue that the added value of this project is limited. Ultimately, this is only a
+(pretty) visualization of one's IP connections. But the visualization can be used vividly
+demonstrate how interconnected modern devices are today. In my family, which does not have
+a particular affinity for technology, I was able to generate some amazement. Evidently, not
+everyone was aware that our smart helpers are constantly phoning home.
 
-But the visualization can be used vividly demonstrate how interconnected modern devices are today. 
-In my family, which does not have a particular affinity for technology, I was able to generate some amazement.
-Evidently, not everyone was aware that our smart helpers are constantly phoning home.
+Even though I consider my network relatively clean, there were several dozens of open
+connections all the time. Most of them go to the usual suspects (AWS, Google, Apple).
+Some have surprised me — a direct connection to Moscow turned out to be a family member's
+Yandex browser, and connections to Alibaba/ByteDance turned out to be my sister's TikTok.
 
-Even though I consider my network relatively clean, there were several dozens of open connections all the time.
-Most of them go to the usual suspects:
-
-- AWS
-- Google / Google Cloud
-- Apple services
-
-Some connections, on the other hand, have surprised me. For example, I was surprised by a connection that went directly to Moscow.
-After a short investigation, it turned out that it was the device of a family member. The user is an avid user of the Yandex 
-browser and the associated mail service. His device was permanently connected to the corresponding Yandex services. 
-
-![spotted connection to Yandex](./img/yandex.png)
-
-In addition, I wondered about a connection to Alibaba and ByteDance, which was also constantly open. Since I'm meticulous
-about making sure all IoT devices are on their own offline VLAN, I wondered if I had missed something.
-However, it turned out that these connections were coming from my little sister's smartphone. She has TikTok installed on the device.
-
-![spotted connection to ByteDance](./img/bytedance.png)
-
-So you can definitely get some insights into your own home network.
-
-## Technology used
+## Technology
 
 - [globe.gl](https://github.com/vasturiano/globe.gl)
 - [MaxMind free Geo IP database](https://www.maxmind.com/en/geoip2-city-accuracy-comparison)
 
-## Installation
+## Prerequisites
 
 ### Mikrotik
 
-At first you need to prepare your router.
+Prepare your router. Create a group with API and read-only access, then a user in that group:
 
-Create a group on the device that has API and read-only access:
-
-`/user group add name=mktvis policy=api,read`
-
-Create a user that is part of the group:
-
-`/user add name=mktvis group=mktvis password='top-secret'
-
-### MaxMind free Account
-
-You need an free account for the MaxMin [free geolocation data](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data?lang=en).
-Once you signed up, you need to generate a license key. This key will be used to download the required database(s).
-
-### Prepare a Raspi (or any other machine)
-
-I deployed this service to a Raspberry Pi. Therefore, I created a simple Ansible Playbook.
-If you prefer Docker, see the [Docker](#docker) section below. Otherwise, prepare a physical
-or virtual machine that you have SSH access to.
-
-### Prepare the Playbook
-
-Adapt `setup/install.yml` to your needs:
-
-```yaml
-    home:
-      # Defaults to Kiel, Germany - not my actual home address
-      # Change this to your coordinates
-      lat: 54.3109861
-      lon: 10.1296693
-
-    routerboard_address: '192.168.0.1'              # This is your Mikrotik device to monitor
-    routerboard_user: 'mktvis'                      # This is user used to authenticate against the Mikrotik API
-    routerboard_password: 'top-secret'              # This is password used to authenticate against the Mikrotik API
-    routerboard_use_ssl: false                      # Set to true to enable SSL encryption (encouraged)
-    routerboard_ssl_certificate_verify: false       # Set to true to enable SSL certificate verification (encouraged)
-
-    maxmind_license_key: '1234'                     # Replace with your MaxMind license key
 ```
-Finally, run the Playbook:
-
-```bash
-pip install -U ansible
-ansible-galaxy install geerlingguy.nginx
-ansible-playbook setup/install.yml -i 192.168.0.11,
+/user group add name=mktvis policy=api,read
+/user add name=mktvis group=mktvis password='top-secret'
 ```
+
+### MaxMind account
+
+Sign up for the [free MaxMind geolocation data](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data?lang=en)
+and generate a license key. The container downloads the databases on first start using this key.
 
 ## Docker
 
 A container image is published to `ghcr.io` from every push to `main` and every git tag.
-The container runs a Python backend API (port 5555 internally) and an nginx frontend
-(proxying `/results` to the backend), behind a supervisord process manager.
 
 ```bash
 docker run -d \
@@ -133,8 +75,6 @@ docker run -d \
 
 Then open `http://localhost:8080` in your browser.
 
-The image is configured exclusively via environment variables. No config file is required or read.
-
 ### Environment variables
 
 | Variable | Type | Required | Notes |
@@ -146,15 +86,23 @@ The image is configured exclusively via environment variables. No config file is
 | `MKTVIS_ROUTERBOARD_USE_SSL` | bool | yes | `1`/`true`/`yes`/`on` or `0`/`false`/`no`/`off` (case-insensitive) |
 | `MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_VERIFY` | bool | yes | same bool syntax as above |
 | `MKTVIS_ROUTERBOARD_SSL_CERTIFICATE_PATH` | str | yes | path to CA bundle; empty string disables custom CA |
-| `MKTVIS_HOME_LAT` | float | yes | latitude of your home location (shown as the arc origin on the globe) |
-| `MKTVIS_HOME_LON` | float | yes | longitude of your home location |
-| `MKTVIS_BACKEND_URL` | str | no | base URL of the API backend (default `http://127.0.0.1:5555`) |
+| `MKTVIS_HOME_LAT` | float | yes | latitude of your location (arc origin on the globe) |
+| `MKTVIS_HOME_LON` | float | yes | longitude of your location |
 | `MKTVIS_CITY_DB_PATH` | str | yes | path to `GeoLite2-City.mmdb` |
 | `MKTVIS_ASN_DB_PATH` | str | yes | path to `GeoLite2-ASN.mmdb` |
-| `MAXMIND_LICENSE_KEY` | str | no | when set, the entrypoint downloads the databases on first start |
-| `MKTVIS_FORCE_DB_UPDATE` | str | no | set to `1` to re-download MaxMind databases on every start |
+| `MAXMIND_LICENSE_KEY` | str | no | downloads databases on first start when set |
+| `MKTVIS_FORCE_DB_UPDATE` | str | no | set to `1` to re-download databases on every start |
 
-The MaxMind databases can be provided in two ways:
+### MaxMind databases
 
-1. Let the entrypoint download them on first start by setting `MAXMIND_LICENSE_KEY`.
-2. Mount them as volumes at the paths given by `MKTVIS_CITY_DB_PATH` / `MKTVIS_ASN_DB_PATH`.
+Two options:
+
+1. Set `MAXMIND_LICENSE_KEY` and the entrypoint downloads them on first start.
+2. Mount them as volumes at `MKTVIS_CITY_DB_PATH` / `MKTVIS_ASN_DB_PATH`.
+
+### Network
+
+The container shares the host network (`--network host`) so it can reach the Mikrotik
+device on your LAN. Without host networking, the container's bridge network cannot route
+to the router. If you must use a different network mode, ensure the Mikrotik IP is
+reachable from the container.

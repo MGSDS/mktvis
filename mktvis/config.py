@@ -25,7 +25,6 @@ _KEYS = (
     'routerboard_ssl_certificate_verify',
     'routerboard_ssl_certificate_path',
     'routerboard_port',
-    'listen_port',
     'city_db_path',
     'asn_db_path',
 
