@@ -99,10 +99,3 @@ Two options:
 
 1. Set `MAXMIND_LICENSE_KEY` and the entrypoint downloads them on first start.
 2. Mount them as volumes at `MKTVIS_CITY_DB_PATH` / `MKTVIS_ASN_DB_PATH`.
-
-### Network
-
-The container shares the host network (`--network host`) so it can reach the Mikrotik
-device on your LAN. Without host networking, the container's bridge network cannot route
-to the router. If you must use a different network mode, ensure the Mikrotik IP is
-reachable from the container.
